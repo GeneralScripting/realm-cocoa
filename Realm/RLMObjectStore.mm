@@ -42,6 +42,10 @@
 
 using namespace realm;
 
+static_assert(RLMUpdatePolicyError == static_cast<int>(CreatePolicy::ForceCreate), "");
+static_assert(RLMUpdatePolicyUpdateAll == static_cast<int>(CreatePolicy::UpdateAll), "");
+static_assert(RLMUpdatePolicyUpdateChanged == static_cast<int>(CreatePolicy::UpdateModified), "");
+
 @interface LinkingObjectsBase : NSObject
 @property (nonatomic, nullable) RLMWeakObjectHandle *object;
 @property (nonatomic, nullable) RLMProperty *property;
@@ -150,8 +154,7 @@ void RLMAddObjectToRealm(__unsafe_unretained RLMObjectBase *const object,
     object->_objectSchema = info.rlmObjectSchema;
     try {
         realm::Object::create(c, realm->_realm, *info.objectSchema, (id)object,
-                              updatePolicy != RLMUpdatePolicyError,
-                              updatePolicy == RLMUpdatePolicyUpdateChanged,
+                              static_cast<CreatePolicy>(updatePolicy),
                               -1, &object->_row);
     }
     catch (std::exception const& e) {
@@ -187,9 +190,8 @@ RLMObjectBase *RLMCreateObjectInRealmWithValue(RLMRealm *realm, NSString *classN
     RLMAccessorContext c{realm, info, false};
     RLMObjectBase *object = RLMCreateManagedAccessor(info.rlmObjectSchema.accessorClass, realm, &info);
     try {
-        object->_row = realm::Object::create(c, realm->_realm, *info.objectSchema,
-                                             (id)value, updatePolicy != RLMUpdatePolicyError,
-                                             updatePolicy == RLMUpdatePolicyUpdateChanged).row();
+        object->_row = realm::Object::create(c, realm->_realm, *info.objectSchema, (id)value,
+                                             static_cast<realm::CreatePolicy>(updatePolicy)).row();
     }
     catch (std::exception const& e) {
         @throw RLMException(e);
